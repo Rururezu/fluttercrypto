@@ -1,19 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_crypto/data/crypto_data.dart';
+import 'package:flutter_crypto/modules/crypto_presenter.dart';
 
 class HomePage extends StatefulWidget {
-
-  final List currencies;
-
-  HomePage(this.currencies);
-
   @override
   _HomePageState createState() => new _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> implements CryptoListViewContract {
 
-  List currencies;
+  CryptoListPresenter _presenter;
+
+  List<Crypto> _currencies;
+  bool _isLoading;
   final List<MaterialColor> _colors = [Colors.blue, Colors.indigo, Colors.red];
+
+  _HomePageState() {
+    _presenter = new CryptoListPresenter(this);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoading = true;
+    _presenter.loadCurrencies();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +32,11 @@ class _HomePageState extends State<HomePage> {
       appBar: new AppBar(
         title: new Text("Crypto App"),
       ),
-      body: _cryptoWidget(),
+      body: _isLoading 
+        ? new Center(
+            child: new CircularProgressIndicator()
+          )
+        : _cryptoWidget(),
     );
   }
 
@@ -31,9 +46,9 @@ class _HomePageState extends State<HomePage> {
         children: <Widget>[
           new Flexible(
             child: new ListView.builder(
-              itemCount: widget.currencies.length,
+              itemCount: _currencies.length,
               itemBuilder: (BuildContext context, int index){
-                final Map currency = widget.currencies[index];
+                final Crypto currency =_currencies[index];
                 final MaterialColor color = _colors[index % _colors.length];
                 return _getListItemUi(currency, color);
               },
@@ -44,17 +59,17 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  ListTile _getListItemUi(Map currency, MaterialColor color) {
+  ListTile _getListItemUi(Crypto currency, MaterialColor color) {
     return new ListTile(
       leading: new CircleAvatar(
         backgroundColor: color,
-        child: new Text(currency['name'][0]),
+        child: new Text(currency.name[0]),
       ),
-      title: new Text(currency['name'], 
+      title: new Text(currency.name, 
         style: new TextStyle(fontWeight: FontWeight.bold)
       ),
       subtitle: _getSubtitleText(
-        currency['price_usd'], currency['percent_change_1h']
+        currency.price_usd, currency.percent_change_1h
       ),
       isThreeLine: true,
     );
@@ -88,5 +103,20 @@ class _HomePageState extends State<HomePage> {
         ]
       ),
     );
+  }
+
+  @override
+  void onLoadCryptoComplete(List<Crypto> items) {
+    // TODO: implement onLoadCryptoComplete
+
+    setState(() {
+      _currencies = items;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void onLoadCryptoError() {
+    // TODO: implement onLoadCryptoError
   }
 }
